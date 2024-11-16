@@ -36,7 +36,7 @@ DEPLOYED_ADDRESS_MORPHL2=$(forge create --rpc-url $MORPH_RPC_URL \
     --constructor-args $MORPH_TOKEN_ADDRESS | grep "Deployed to" | awk '{print $3}') 
 
 
-# echo "Contract deployed to: $DEPLOYED_ADDRESS_MORPHL2 on Morphl2" !
+echo "Contract deployed to: $DEPLOYED_ADDRESS_MORPHL2 on Morphl2" !
 
 #deployement on scroll sepolia
 DEPLOYED_ADDRESS_SCROLL=$(forge create --rpc-url $SCROLL_RPC_URL \
