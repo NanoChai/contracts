@@ -79,3 +79,10 @@ DEPLOYED_ADDRESS_ARBITRUM=$(forge create --rpc-url $ARBITRUM_RPC_URL \
 
 echo "Contract deployed to: $DEPLOYED_ADDRESS_ARBITRUM on Arbitrum Sepolia" !
 
+#deployement on celo alfajores
+DEPLOYED_ADDRESS_CELO=$(forge create --rpc-url $CELO_RPC_URL \
+    --private-key $PRIVATE_KEY \
+    src/Deposit.sol:NanoChai \
+    --constructor-args $CELO_TOKEN_ADDRESS | grep "Deployed to" | awk '{print $3}') 
+
+echo "Contract deployed to: $DEPLOYED_ADDRESS_CELO on Celo Alfajores" !
