@@ -269,4 +269,9 @@ contract NanoChai {
         require(service != address(0), "Invalid service address");
         return restakers[restaker].reductionUnlockTime[service];
     }
+
+    function getUserNonce(address service, address user) external view returns (uint256) {
+        require(service != address(0), "Invalid service address");
+        return userNonces[service][user];
+    }
 }
