@@ -50,7 +50,9 @@ contract NanoChai {
     event RestakerSlashed(address indexed restaker, uint256 slashedAmount);
     event Restaked(address indexed restaker, uint256 amount);
     event Allocated(address indexed restaker, address indexed service, uint256 amount);
-    event AllocationReductionInitiated(address indexed restaker, address indexed service, uint256 amount, uint256 unlockTime);
+    event AllocationReductionInitiated(
+        address indexed restaker, address indexed service, uint256 amount, uint256 unlockTime
+    );
     event AllocationReductionFinished(address indexed restaker, address indexed service, uint256 amount);
 
     constructor(IERC20 _token) {
@@ -162,16 +164,12 @@ contract NanoChai {
 
         emit AllocationReductionFinished(msg.sender, service, amount);
     }
-    
+
     // Verify and process multiple user + restaker signatures off-chain, then allow services to withdraw
-    function withdrawWithSignatures(
-        WithdrawWithSignaturesArgs calldata args
-    ) external {
+    function withdrawWithSignatures(WithdrawWithSignaturesArgs calldata args) external {
         require(
-            args.users.length == args.amounts.length &&
-            args.users.length == args.nonces.length &&
-            args.users.length == args.userSigs.length &&
-            args.users.length == args.restakerSigs.length,
+            args.users.length == args.amounts.length && args.users.length == args.nonces.length
+                && args.users.length == args.userSigs.length && args.users.length == args.restakerSigs.length,
             "Input arrays must have the same length"
         );
 
@@ -182,8 +180,10 @@ contract NanoChai {
         require(restakerData.allocations[service] > 0, "No allocation available for service");
 
         for (uint256 i = 0; i < args.users.length; i++) {
-            uint256 verifiedAmount = _verifyUserSignature(args.users[i], args.amounts[i], args.nonces[i], args.userSigs[i], service);
-            uint256 processedAmount = _processRestakerSignature(args.users[i], verifiedAmount, args.restakerSigs[i], service);
+            uint256 verifiedAmount =
+                _verifyUserSignature(args.users[i], args.amounts[i], args.nonces[i], args.userSigs[i], service);
+            uint256 processedAmount =
+                _processRestakerSignature(args.users[i], verifiedAmount, args.restakerSigs[i], service);
             totalAmount += processedAmount;
         }
 
@@ -191,13 +191,11 @@ contract NanoChai {
         emit ServiceWithdrawn(service, totalAmount);
     }
 
-    function _verifyUserSignature(
-        address user,
-        uint256 amount,
-        uint256 nonce,
-        bytes calldata userSig,
-        address service
-    ) internal view returns (uint256) {
+    function _verifyUserSignature(address user, uint256 amount, uint256 nonce, bytes calldata userSig, address service)
+        internal
+        view
+        returns (uint256)
+    {
         bytes32 messageHash = keccak256(abi.encodePacked(service, amount, nonce, block.chainid));
         bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
 
@@ -206,17 +204,17 @@ contract NanoChai {
         return amount;
     }
 
-    function _processRestakerSignature(
-        address user,
-        uint256 amount,
-        bytes calldata restakerSig,
-        address service
-    ) internal returns (uint256) {
+    function _processRestakerSignature(address user, uint256 amount, bytes calldata restakerSig, address service)
+        internal
+        returns (uint256)
+    {
         bytes32 messageHash = keccak256(abi.encodePacked(service, amount, userNonces[service][user], block.chainid));
         bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
 
         // Verify restaker signature
-        require(recoverSigner(ethSignedMessageHash, restakerSig) == services[service].restaker, "Invalid restaker signature");
+        require(
+            recoverSigner(ethSignedMessageHash, restakerSig) == services[service].restaker, "Invalid restaker signature"
+        );
 
         // Increment nonce
         userNonces[service][user] += 1;
@@ -225,7 +223,10 @@ contract NanoChai {
         Deposit storage userDeposit = deposits[user];
         if (userDeposit.amount < amount) {
             uint256 slashAmount = amount - userDeposit.amount;
-            require(slashAmount < restakers[services[service].restaker].allocations[service], "Slash amount exceeds allocation");
+            require(
+                slashAmount < restakers[services[service].restaker].allocations[service],
+                "Slash amount exceeds allocation"
+            );
 
             restakers[services[service].restaker].allocations[service] -= slashAmount;
             emit RestakerSlashed(services[service].restaker, slashAmount);
