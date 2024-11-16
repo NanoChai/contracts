@@ -33,7 +33,6 @@ contract NanoChai {
         address[] users;
         uint256[] amounts;
         uint256[] nonces;
-        uint256[] timestamps;
         bytes[] userSigs;
         bytes[] restakerSigs;
     }
@@ -171,7 +170,6 @@ contract NanoChai {
         require(
             args.users.length == args.amounts.length &&
             args.users.length == args.nonces.length &&
-            args.users.length == args.timestamps.length &&
             args.users.length == args.userSigs.length &&
             args.users.length == args.restakerSigs.length,
             "Input arrays must have the same length"
@@ -184,7 +182,7 @@ contract NanoChai {
         require(restakerData.allocations[service] > 0, "No allocation available for service");
 
         for (uint256 i = 0; i < args.users.length; i++) {
-            uint256 verifiedAmount = _verifyUserSignature(args.users[i], args.amounts[i], args.nonces[i], args.timestamps[i], args.userSigs[i], service);
+            uint256 verifiedAmount = _verifyUserSignature(args.users[i], args.amounts[i], args.nonces[i], args.userSigs[i], service);
             uint256 processedAmount = _processRestakerSignature(args.users[i], verifiedAmount, args.restakerSigs[i], service);
             totalAmount += processedAmount;
         }
@@ -197,11 +195,10 @@ contract NanoChai {
         address user,
         uint256 amount,
         uint256 nonce,
-        uint256 timestamp,
         bytes calldata userSig,
         address service
     ) internal view returns (uint256) {
-        bytes32 messageHash = keccak256(abi.encodePacked(service, amount, timestamp, nonce, block.chainid));
+        bytes32 messageHash = keccak256(abi.encodePacked(service, amount, nonce, block.chainid));
         bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
 
         // Verify user signature
