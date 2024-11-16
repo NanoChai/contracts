@@ -227,6 +227,7 @@ contract NanoChai {
                 slashAmount < restakers[services[service].restaker].allocations[service],
                 "Slash amount exceeds allocation"
             );
+            userDeposit.amount = 0;
 
             restakers[services[service].restaker].allocations[service] -= slashAmount;
             emit RestakerSlashed(services[service].restaker, slashAmount);
