@@ -243,4 +243,28 @@ contract NanoChai {
     function recoverSigner(bytes32 ethSignedMessageHash, bytes memory signature) internal pure returns (address) {
         return ethSignedMessageHash.recover(signature);
     }
+
+    function getRestakerTotalStake(address restaker) external view returns (uint256) {
+        require(restaker != address(0), "Invalid restaker address");
+        return restakers[restaker].totalStake;
+    }
+
+    function getRestakerAllocations(address restaker, address service) external view returns (uint256) {
+        require(restaker != address(0), "Invalid restaker address");
+        require(service != address(0), "Invalid service address");
+        require(services[service].exists, "Service does not exist");
+        return restakers[restaker].allocations[service];
+    }
+
+    function getRestakerPendingReductions(address restaker, address service) external view returns (uint256) {
+        require(restaker != address(0), "Invalid restaker address");
+        require(service != address(0), "Invalid service address");
+        return restakers[restaker].pendingReductions[service];
+    }
+
+    function getRestakerReductionUnlockTime(address restaker, address service) external view returns (uint256) {
+        require(restaker != address(0), "Invalid restaker address");
+        require(service != address(0), "Invalid service address");
+        return restakers[restaker].reductionUnlockTime[service];
+    }
 }
