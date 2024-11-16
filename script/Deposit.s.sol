@@ -6,11 +6,10 @@ import "../src/Deposit.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 address constant USDC_BASE_SEPOLIA_TOKEN_ADDRESS = 0x2e880FbE609947Cd45D0B4dA22caa1B6777ba9A4;
+
 contract DeployNanoChai is Script {
     function run() external {
-
         // Start broadcasting'
-        
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         string memory rpcUrl = vm.envString("BASE_SEPOLIA_RPC_URL");
         vm.createSelectFork(rpcUrl);

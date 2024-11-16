@@ -215,7 +215,7 @@ contract NanoChaiTest is Test {
         uint256[] memory amounts = new uint256[](usersCount);
         amounts[0] = 1 * 10 ** 18;
         amounts[1] = 0.5 * 10 ** 18;
-        
+
         uint256[] memory nonces = new uint256[](usersCount);
         nonces[0] = 1;
         nonces[1] = 2;
@@ -240,7 +240,10 @@ contract NanoChaiTest is Test {
         );
     }
 
-    function _signMessage(address signer, address service, uint256 amount, uint256 nonce) internal returns (bytes memory) {
+    function _signMessage(address signer, address service, uint256 amount, uint256 nonce)
+        internal
+        returns (bytes memory)
+    {
         bytes32 messageHash = keccak256(abi.encodePacked(service, amount, nonce, block.chainid));
         bytes32 ethSignedMessageHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(uint256(uint160(signer)), ethSignedMessageHash);
