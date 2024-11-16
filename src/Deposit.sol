@@ -55,8 +55,8 @@ contract NanoChai {
     );
     event AllocationReductionFinished(address indexed restaker, address indexed service, uint256 amount);
 
-    constructor(IERC20 _token) {
-        token = _token;
+    constructor(address _token) {
+        token = IERC20(_token);
     }
 
     // Deposit funds to the contract
