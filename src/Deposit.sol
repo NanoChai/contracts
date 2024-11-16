@@ -238,6 +238,10 @@ contract NanoChai {
         }
     }
 
+    function getDeposits(address user) external view returns (uint256) {
+        return deposits[user].amount;
+    }
+
     function getEthSignedMessageHash(bytes32 messageHash) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash));
     }
