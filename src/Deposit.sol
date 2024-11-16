@@ -29,6 +29,15 @@ contract NanoChai {
         mapping(address => uint256) reductionUnlockTime;
     }
 
+    struct WithdrawWithSignaturesArgs {
+        address[] users;
+        uint256[] amounts;
+        uint256[] nonces;
+        uint256[] timestamps;
+        bytes[] userSigs;
+        bytes[] restakerSigs;
+    }
+
     mapping(address => Deposit) public deposits;
     mapping(address => Service) public services;
     mapping(address => Restaker) public restakers;
@@ -154,22 +163,17 @@ contract NanoChai {
 
         emit AllocationReductionFinished(msg.sender, service, amount);
     }
-
+    
     // Verify and process multiple user + restaker signatures off-chain, then allow services to withdraw
     function withdrawWithSignatures(
-        address[] calldata users,
-        uint256[] calldata amounts,
-        uint256[] calldata nonces,
-        uint256[] calldata timestamps,
-        bytes[] calldata userSigs,
-        bytes[] calldata restakerSigs
+        WithdrawWithSignaturesArgs calldata args
     ) external {
         require(
-            users.length == amounts.length &&
-            users.length == nonces.length &&
-            users.length == timestamps.length &&
-            users.length == userSigs.length &&
-            users.length == restakerSigs.length,
+            args.users.length == args.amounts.length &&
+            args.users.length == args.nonces.length &&
+            args.users.length == args.timestamps.length &&
+            args.users.length == args.userSigs.length &&
+            args.users.length == args.restakerSigs.length,
             "Input arrays must have the same length"
         );
 
@@ -179,43 +183,60 @@ contract NanoChai {
         Restaker storage restakerData = restakers[services[service].restaker];
         require(restakerData.allocations[service] > 0, "No allocation available for service");
 
-        for (uint256 i = 0; i < users.length; i++) {
-            address user = users[i];
-            uint256 amount = amounts[i];
-            uint256 nonce = userNonces[service][user];
-            uint256 timestamp = timestamps[i];
-            bytes calldata userSig = userSigs[i];
-            bytes calldata restakerSig = restakerSigs[i];
-
-            bytes32 messageHash = keccak256(abi.encodePacked(service, amount, timestamp, nonce, block.chainid));
-            bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
-
-            // Verify user signature
-            require(recoverSigner(ethSignedMessageHash, userSig) == user, "Invalid user signature");
-
-            // Verify restaker signature
-            require(recoverSigner(ethSignedMessageHash, restakerSig) == services[service].restaker, "Invalid restaker signature");
-
-            // Increment nonce
-            userNonces[service][user] += 1;
-
-            // Check user balance
-            Deposit storage userDeposit = deposits[user];
-            if (userDeposit.amount < amount) {
-                uint256 slashAmount = amount - userDeposit.amount;
-                require(slashAmount < restakerData.allocations[service], "Slash amount exceeds allocation");
-
-                restakerData.allocations[service] -= slashAmount;
-                totalAmount += slashAmount;
-                emit RestakerSlashed(services[service].restaker, slashAmount);
-            } else {
-                userDeposit.amount -= amount;
-                totalAmount += amount;
-            }
+        for (uint256 i = 0; i < args.users.length; i++) {
+            uint256 verifiedAmount = _verifyUserSignature(args.users[i], args.amounts[i], args.nonces[i], args.timestamps[i], args.userSigs[i], service);
+            uint256 processedAmount = _processRestakerSignature(args.users[i], verifiedAmount, args.restakerSigs[i], service);
+            totalAmount += processedAmount;
         }
 
         require(token.transfer(service, totalAmount), "Token transfer failed");
         emit ServiceWithdrawn(service, totalAmount);
+    }
+
+    function _verifyUserSignature(
+        address user,
+        uint256 amount,
+        uint256 nonce,
+        uint256 timestamp,
+        bytes calldata userSig,
+        address service
+    ) internal view returns (uint256) {
+        bytes32 messageHash = keccak256(abi.encodePacked(service, amount, timestamp, nonce, block.chainid));
+        bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
+
+        // Verify user signature
+        require(recoverSigner(ethSignedMessageHash, userSig) == user, "Invalid user signature");
+        return amount;
+    }
+
+    function _processRestakerSignature(
+        address user,
+        uint256 amount,
+        bytes calldata restakerSig,
+        address service
+    ) internal returns (uint256) {
+        bytes32 messageHash = keccak256(abi.encodePacked(service, amount, userNonces[service][user], block.chainid));
+        bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
+
+        // Verify restaker signature
+        require(recoverSigner(ethSignedMessageHash, restakerSig) == services[service].restaker, "Invalid restaker signature");
+
+        // Increment nonce
+        userNonces[service][user] += 1;
+
+        // Check user balance
+        Deposit storage userDeposit = deposits[user];
+        if (userDeposit.amount < amount) {
+            uint256 slashAmount = amount - userDeposit.amount;
+            require(slashAmount < restakers[services[service].restaker].allocations[service], "Slash amount exceeds allocation");
+
+            restakers[services[service].restaker].allocations[service] -= slashAmount;
+            emit RestakerSlashed(services[service].restaker, slashAmount);
+            return slashAmount;
+        } else {
+            userDeposit.amount -= amount;
+            return amount;
+        }
     }
 
     function getEthSignedMessageHash(bytes32 messageHash) internal pure returns (bytes32) {
