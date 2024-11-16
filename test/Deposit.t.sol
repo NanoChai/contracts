@@ -22,7 +22,7 @@ contract NanoChaiTest is Test {
     function setUp() public {
         // Deploy mock token and NanoChai contract
         mockToken = new MockERC20();
-        nanoChai = new NanoChai(mockToken);
+        nanoChai = new NanoChai(address(mockToken));
 
         // Create mock addresses
         user1 = address(0x1);
